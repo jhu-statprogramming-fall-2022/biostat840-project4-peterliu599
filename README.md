@@ -1,6 +1,6 @@
 # biostat840-project4-peterliu599
 
-Project 4 ffor biostat 840
+Project 4 for biostat 840
 
 Made by Peter Liu
 
