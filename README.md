@@ -6,3 +6,4 @@ Made by Peter Liu
 
 Shiny app url: https://peterliu599.shinyapps.io/project4/#section-analysis
 
+The video loading is a bit slow, so please be patient. Thanks!s
