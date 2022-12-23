@@ -1,0 +1,213 @@
+---
+title: "Password"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(readr)
+library(tidyverse)
+library(shinyLP)
+```
+
+```{r, message=F, warning=F}
+# A better read in template with out here which might cause the rendering issue.
+current_wd <- getwd()
+if (file.exists("data")) {
+  setwd(file.path(current_wd, "data"))
+} else {
+  dir.create(file.path(current_wd, "data"))
+  setwd(file.path(current_wd, "data"))
+}
+if (file.exists("password.csv")) {
+  password <- read_csv("password.csv")
+} else {
+  password <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-14/passwords.csv")
+  write_csv(password, "password.csv")
+}
+```
+
+# About
+
+###
+
+In this dashboard, we give an overview of the data set password with interactive dashboards, videos, and data analysis examples. 
+
+The data set contains a variety of most commonly used passwords sourced from Information is Beautiful. The data and the dictionary can be found from https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-01-14. 
+
+------------------------------------------------------------------------
+
+The dashboard includes the following pages: 
+
+1. About: You are right here!
+
+2. The Data: A data overview with explantion to the data set columns. 
+
+3. Online/Offline cracking time: boxplots of online/offline cracking time by category with two tabs for online/offline respectively. 
+
+4. Password distribution in category: Which type of password is most popular?
+
+5. Strength of password: Interactive discrete historgrams representing the strength of passwords by category.
+
+6. Offline cracking time: Interactive continuous density plots representing the offline cracking time density of passwords by category.
+
+7. Analysis: Answer questions 
+  - Among all password types, which category is the easiest to be cracked?
+  - Is the password strength closely related to cracking time?
+  - Which kind of password is the most popular?
+  
+------------------------------------------------------------------------
+
+
+# Video
+
+<iframe
+    width="800"
+    height="600"
+    src="https://www.youtube.com/embed/vL7nKJMnL8M"
+    frameborder="0"
+    allow="autoplay; encrypted-media"
+    allowfullscreen
+>
+</iframe>
+
+
+# The Data
+
+## Column {data-width="60"}
+
+### 
+
+The password data set contains a variety of most commonly used passwords sourced from Information is Beautiful. The data and the dictionary can be found from https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-01-14. Below is the data with unnecessary columns removed. The passwords are given (as in column "password"), ranked by their frequencies, and described with category, online/offline cracking time, and the strength of the passwords. 
+
+```{r, echo=FALSE}
+x.1 <- password %>% select(-rank_alt, -font_size)
+names(x.1) <- c("rank", "password", "category", "online crack time", "time unit", "offline crack time", "strength")
+DT::renderDataTable({
+  DT::datatable(x.1,
+                caption = "",
+                options = list(autoWidth = TRUE,
+                                 pageLength = 10,
+                                 scroller = TRUE,
+                                 scrollY = '450px'))
+})
+```
+
+# Online/Offline cracking time
+
+## Column {.tabset .tabset-fade data-width="100"}
+
+### Online cracking time by category
+
+```{r}
+x.3 <- x.1 %>% select(category, `online crack time`) %>% filter(`online crack time` < 25)
+ggplot(x.3, aes(x = category, y = `online crack time`)) + geom_boxplot() + 
+  labs(title = "Online cracking time by category",
+       caption = "Plot made by Bolun Liu") + 
+  xlab("Category") + ylab("Time") + theme(axis.text.x = element_text(angle = 45, hjust=1))
+```
+
+### Offline cracking time by category
+
+```{r}
+x.4 <- x.1 %>% select(category, `offline crack time`) %>% filter(`offline crack time` < 25)
+ggplot(x.4, aes(x = category, y = `offline crack time`)) + geom_boxplot() + 
+  labs(title = "Offline cracking time by category",
+       caption = "Plot made by Bolun Liu") + 
+  xlab("Category") + ylab("Time") + theme(axis.text.x = element_text(angle = 45, hjust=1))
+```
+
+# Password distribution in category
+
+## Column
+
+```{r}
+count <- x.1 %>% group_by(category) %>% 
+  summarise(n = n())
+renderPlot(ggplot(count, aes(x = category, y = n)) + geom_bar(stat="identity") + 
+  labs(title = "Distribution of passwords by category",
+       subtitle = "Name related passwords in the most popular!",
+       caption = "Plot made by Bolun Liu") + 
+  xlab("Category") + ylab("Count") + theme(axis.text.x = element_text(angle = 45, hjust=1)))
+```
+
+
+# Strength of password by category
+
+## Sidebar {.sidebar}
+
+```{r}
+category_tag <- unique(x.1$category)
+selectInput("c_name", label = "Category:",
+            choices = category_tag, selected = "password-related")
+```
+
+## Chart
+
+```{r}
+renderPlot({
+  ggplot(x.1 %>% select(category, strength) %>%
+           filter(category == input$c_name), aes(x = strength)) +
+  geom_histogram() +   labs(
+         title = "Histogram of the password strength",
+         subtitle = "By password category")
+})
+```
+
+# Offline cracking time by category
+
+## Sidebar {.sidebar}
+
+```{r}
+category_tag2 <- unique(x.1$category)
+selectInput("c_name2", label = "Category:",
+            choices = category_tag2, selected = "password-related")
+```
+
+## Chart
+
+```{r}
+renderPlot({
+  ggplot(x.1 %>% select(category, `offline crack time`) %>%
+           filter(category == input$c_name2), aes(x = `offline crack time`)) +
+  geom_density() +     labs(
+         title = "Distribution of offline cracking time ",
+         subtitle = "By password category")
+})
+```
+
+# Analysis
+
+## Result
+
+From average rank statistics, category password-related ("password") and rebellious-rude ("biteme") type passwords are the most common. Individually, simple-alphanumeric code such as "1111" and "aaaa" are the most popular. Among all category, nerdy-pop, sport, and password-related codes are relatively harder to crack, but the different can be negligble. Moreover, the strength in the data set is not related to the cracking time, indicating it is not a good candidate for data analysis.
+
+## Password Strength vs. offline cracking time
+
+```{r}
+x.11 <- password %>% drop_na()
+x.13 <- x.11 %>% filter(str_detect(time_unit, "day"))
+renderPlot({ggplot(x.13) + geom_point(aes(y = strength, x = offline_crack_sec)) + 
+    labs(title = "Password strength against offline cracking time",
+       subtitle = "Their mannual set password strength doesn't seem to be a good criteria. \nI am quite surprised by this result.\n This suggests the strength here might not be a base for accurate analysis.",
+       caption = "Plot made by Bolun Liu") + 
+  xlab("Time") + ylab("Strength")})
+```
+
+## Histograms of passwork ranks by category
+
+```{r}
+x.15 <- x.13 %>% select(password, category, rank, strength)
+renderPlot({ggplot(data = x.15) + geom_histogram(aes(x = rank)) + facet_grid(rows = vars(category)) +  
+  labs(title = "Histograms of password ranks by category",
+       subtitle = "Although password-related and rude passwords have higher ranks on average,\nanimal-related and simple-alphanumeric passwords appears to be most common individually.",
+       caption = "Plot made by Bolun Liu") + 
+  xlab("Rank statistics") + ylab("Frequency")})
+```
+
+
+
